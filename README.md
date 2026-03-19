@@ -143,6 +143,36 @@ curl http://localhost:3000/health
 docker compose logs -f
 ```
 
+## Автодеплой через GitHub Actions
+
+В репозитории добавлен workflow: `.github/workflows/deploy.yml`.
+Он срабатывает на каждый push в `main` и по кнопке `Run workflow`, заходит на VPS по SSH и запускает `scripts/deploy.sh`.
+
+### Что один раз подготовить на VPS
+
+1. Установить Docker и Docker Compose plugin.
+2. Подготовить рабочую директорию, например `/opt/ai-review-app`.
+3. Клонировать туда репозиторий.
+4. Создать `.env`.
+5. Создать `secrets/github_private_key.pem`.
+6. Убедиться, что пользователь деплоя может выполнять `docker compose`.
+
+### Какие GitHub Secrets нужны
+
+- `DEPLOY_HOST` — IP или домен VPS
+- `DEPLOY_PORT` — SSH порт, обычно `22`
+- `DEPLOY_USER` — SSH пользователь на VPS
+- `DEPLOY_SSH_KEY` — приватный ключ для входа по SSH
+- `APP_DIR` — путь до проекта на VPS, например `/opt/ai-review-app`
+
+### Что делает deploy-скрипт
+
+- проверяет наличие `.env`
+- проверяет наличие `secrets/github_private_key.pem`
+- подтягивает свежий `main`
+- делает `docker compose up -d --build`
+- удаляет dangling images
+
 ## Контекст для AI
 
 Агент получает из репозитория (через GitHub API, без клонирования):
