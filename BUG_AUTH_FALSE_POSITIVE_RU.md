@@ -27,13 +27,13 @@ docker compose exec -T review-bot claude auth status
 ```
 
 ## Причина
-В `src/ai/claudeProvider.ts` метод `checkAuth()` проверяет не факт логина, а только доступность команды `claude` через вызов:
+В `src/ai/claudeProvider.ts` метод `checkAuth()` использовал несовместимый вызов:
 
 ```ts
-spawn('claude', ['--version'], { stdio: 'pipe' })
+spawn('claude', ['auth', 'status', '--output-format', 'json'], { stdio: 'pipe' })
 ```
 
-Если CLI установлен и команда завершается с кодом `0`, метод возвращает `true`, даже если пользователь не авторизован.
+В текущей версии Claude CLI опция `--output-format` для `claude auth status` не поддерживается, команда завершается с ошибкой, и приложение ошибочно считает, что авторизации нет.
 
 ## Почему это баг
 Из-за этого система:
