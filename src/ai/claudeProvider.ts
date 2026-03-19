@@ -9,8 +9,18 @@ export class ClaudeProvider implements AIProvider {
 
   async checkAuth(): Promise<boolean> {
     return new Promise((resolve) => {
-      const proc = spawn('claude', ['--version'], { stdio: 'pipe' });
-      proc.on('close', (code) => resolve(code === 0));
+      const proc = spawn('claude', ['auth', 'status', '--output-format', 'json'], { stdio: 'pipe' });
+      let stdout = '';
+      proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+      proc.on('close', (code) => {
+        if (code !== 0) { resolve(false); return; }
+        try {
+          const parsed = JSON.parse(stdout);
+          resolve(parsed.loggedIn === true);
+        } catch {
+          resolve(false);
+        }
+      });
       proc.on('error', () => resolve(false));
       setTimeout(() => { proc.kill(); resolve(false); }, 10000);
     });

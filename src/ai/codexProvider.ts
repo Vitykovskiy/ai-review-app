@@ -9,7 +9,7 @@ export class CodexProvider implements AIProvider {
 
   async checkAuth(): Promise<boolean> {
     return new Promise((resolve) => {
-      const proc = spawn('codex', ['--version'], { stdio: 'pipe' });
+      const proc = spawn('codex', ['auth', 'status'], { stdio: 'pipe' });
       proc.on('close', (code) => resolve(code === 0));
       proc.on('error', () => resolve(false));
       setTimeout(() => { proc.kill(); resolve(false); }, 10000);
