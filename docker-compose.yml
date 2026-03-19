@@ -1,0 +1,15 @@
+services:
+  review-bot:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env
+    volumes:
+      # Persists AI CLI auth tokens across container restarts
+      - ai_auth_tokens:/home/node/.config
+      # GitHub App private key (read-only)
+      - ./secrets/github_private_key.pem:/run/secrets/github_private_key.pem:ro
+
+volumes:
+  ai_auth_tokens:
