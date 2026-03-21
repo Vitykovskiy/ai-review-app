@@ -37,6 +37,15 @@ export async function handlePullRequest(
   activeLocks.add(prKey);
   console.log(`[pr] Starting review for ${prKey} (${action})`);
 
+  // Safety: release lock after timeout + buffer in case of unexpected hang
+  const lockTimeoutMs = config.aiTimeoutMs + 60_000;
+  const lockTimer = setTimeout(() => {
+    if (activeLocks.has(prKey)) {
+      console.warn(`[pr] Lock safety timeout reached for ${prKey}, releasing`);
+      activeLocks.delete(prKey);
+    }
+  }, lockTimeoutMs);
+
   try {
     const client = await createGitHubClient(
       installation.id,
@@ -77,6 +86,7 @@ export async function handlePullRequest(
   } catch (err) {
     console.error(`[pr] Error reviewing ${prKey}:`, err);
   } finally {
+    clearTimeout(lockTimer);
     activeLocks.delete(prKey);
   }
 }

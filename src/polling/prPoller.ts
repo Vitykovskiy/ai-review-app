@@ -5,6 +5,7 @@ import { handlePullRequest } from '../webhooks/pullRequestHandler';
 
 const GITHUB_API = 'https://api.github.com';
 const seenHeadShas = new Map<string, string>();
+const SEEN_HEAD_SHAS_MAX = 500;
 const pollIntervalMs = 60_000;
 
 async function appRequest(config: Config, path: string): Promise<any> {
@@ -23,6 +24,14 @@ async function appRequest(config: Config, path: string): Promise<any> {
   }
 
   return response.json();
+}
+
+function trackHeadSha(prKey: string, sha: string): void {
+  seenHeadShas.set(prKey, sha);
+  if (seenHeadShas.size > SEEN_HEAD_SHAS_MAX) {
+    const firstKey = seenHeadShas.keys().next().value;
+    if (firstKey) seenHeadShas.delete(firstKey);
+  }
 }
 
 async function installationRequest(config: Config, installationId: number, path: string): Promise<any> {
@@ -52,6 +61,22 @@ async function hasBotReviewForHead(config: Config, installationId: number, owner
   });
 }
 
+async function fetchAllOpenPRs(config: Config, installationId: number, owner: string, repo: string): Promise<any[]> {
+  const all: any[] = [];
+  let page = 1;
+  while (true) {
+    const batch = await installationRequest(
+      config,
+      installationId,
+      `/repos/${owner}/${repo}/pulls?state=open&per_page=100&page=${page}`
+    ) as any[];
+    all.push(...batch);
+    if (batch.length < 100) break;
+    page++;
+  }
+  return all;
+}
+
 async function pollOnce(config: Config, aiProvider: AIProvider): Promise<void> {
   const installations = await appRequest(config, '/app/installations') as any[];
 
@@ -64,7 +89,7 @@ async function pollOnce(config: Config, aiProvider: AIProvider): Promise<void> {
       const repo = repository.name as string;
       const fullName = `${owner}/${repo}`;
       if (config.pollerRepos && !config.pollerRepos.includes(fullName)) continue;
-      const prs = await installationRequest(config, installationId, `/repos/${owner}/${repo}/pulls?state=open`) as any[];
+      const prs = await fetchAllOpenPRs(config, installationId, owner, repo);
 
       for (const pr of prs) {
         if (pr.draft) continue;
@@ -73,7 +98,7 @@ async function pollOnce(config: Config, aiProvider: AIProvider): Promise<void> {
         if (seenHeadShas.get(prKey) === pr.head.sha) continue;
 
         if (await hasBotReviewForHead(config, installationId, owner, repo, pr.number, pr.head.sha)) {
-          seenHeadShas.set(prKey, pr.head.sha);
+          trackHeadSha(prKey, pr.head.sha);
           continue;
         }
 
@@ -94,7 +119,7 @@ async function pollOnce(config: Config, aiProvider: AIProvider): Promise<void> {
 
         console.log(`[poller] Reviewing ${prKey} at ${pr.head.sha}`);
         await handlePullRequest(payload, config, aiProvider);
-        seenHeadShas.set(prKey, pr.head.sha);
+        trackHeadSha(prKey, pr.head.sha);
       }
     }
   }

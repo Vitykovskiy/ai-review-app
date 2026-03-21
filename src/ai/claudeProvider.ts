@@ -56,7 +56,7 @@ export class ClaudeProvider implements AIProvider {
 
     return {
       action: 'COMMENT',
-      body: 'Не удалось надёжно сформировать AI-review. Нужен повторный запуск после исправления формата ответа модели.',
+      body: 'AI review could not produce a valid response. Please re-trigger the review.',
       comments: [],
     };
   }
