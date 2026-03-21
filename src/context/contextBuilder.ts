@@ -28,6 +28,7 @@ Rules:
 - Keep comments short, plain, and practical
 - "comments" should reference specific lines with actionable feedback
 - "body" should summarize the overall review in plain language
+- Write the entire review in the same language as the pull request title and description
 - Respond with JSON only, no markdown, no extra text`;
 
 export function buildPrompt(
