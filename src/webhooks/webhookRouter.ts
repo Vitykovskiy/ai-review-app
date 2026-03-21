@@ -17,6 +17,8 @@ export function webhookRouter(config: Config, aiProvider: AIProvider): Router {
     const event = req.headers['x-github-event'] as string;
     const deliveryId = req.headers['x-github-delivery'] as string;
 
+    console.log(`[webhook] Incoming event=${event} delivery=${deliveryId}`);
+
     // Respond immediately — GitHub requires fast response
     res.status(200).send('ok');
 

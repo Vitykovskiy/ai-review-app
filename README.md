@@ -80,7 +80,7 @@ src/
 | `PORT` | Порт HTTP сервера (default: `3000`) |
 | `MAX_PROMPT_CHARS` | Максимум символов в промпте (default: `200000`) |
 | `MAX_RULES_CHARS` | Максимум символов для правил из репо (default: `50000`) |
-| `POLLER_REPOS` | Список репо для fallback-поллинга через запятую: `owner/repo,owner/repo2`. Если не задан — поллится всё |
+| `POLLER_REPOS` | Необязательное ограничение для fallback-поллера. Если не задан — поллятся все доступные репозитории. Для прода обычно не нужен |
 
 ## Деплой на VPS
 
@@ -95,7 +95,7 @@ src/
    - Pull requests: **Read & Write**
    - Issues: **Read**
    - Contents: **Read**
-4. Events: поставить галочку **Pull request**
+4. Events: поставить галочку **Pull request** — без этого webhook-driven review не заработает
 5. Создать App → сохранить **App ID**
 6. Generate private key → скачать `.pem` файл
 7. Установить App на нужные репозитории (Install App)
