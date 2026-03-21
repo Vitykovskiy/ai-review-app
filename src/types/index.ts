@@ -8,6 +8,7 @@ export interface Config {
   logLevel: string;
   maxPromptChars: number;
   maxRulesChars: number;
+  pollerRepos?: string[];
 }
 
 export interface PREvent {

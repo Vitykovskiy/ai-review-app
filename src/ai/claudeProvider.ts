@@ -10,7 +10,20 @@ export class ClaudeProvider implements AIProvider {
   async checkAuth(): Promise<boolean> {
     return new Promise((resolve) => {
       const proc = spawn('claude', ['auth', 'status'], { stdio: 'pipe' });
-      proc.on('close', (code) => resolve(code === 0));
+      let stdout = '';
+      proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          resolve(false);
+          return;
+        }
+        try {
+          const parsed = JSON.parse(stdout);
+          resolve(parsed.loggedIn === true);
+        } catch {
+          resolve(false);
+        }
+      });
       proc.on('error', () => resolve(false));
       setTimeout(() => { proc.kill(); resolve(false); }, 10000);
     });
@@ -34,7 +47,18 @@ export class ClaudeProvider implements AIProvider {
 
   async review(prompt: string): Promise<ReviewResult> {
     const output = await this.runCLI(prompt);
-    return this.parseOutput(output);
+    const parsed = this.tryParseOutput(output);
+    if (parsed) return parsed;
+
+    const repaired = await this.repairJson(output);
+    const repairedParsed = this.tryParseOutput(repaired);
+    if (repairedParsed) return repairedParsed;
+
+    return {
+      action: 'COMMENT',
+      body: 'Не удалось надёжно сформировать AI-review. Нужен повторный запуск после исправления формата ответа модели.',
+      comments: [],
+    };
   }
 
   private runCLI(prompt: string): Promise<string> {
@@ -78,35 +102,41 @@ export class ClaudeProvider implements AIProvider {
     });
   }
 
-  private parseOutput(output: string): ReviewResult {
-    // Extract JSON from output (model may add markdown fences)
+  private tryParseOutput(output: string): ReviewResult | null {
     const jsonMatch = output.match(/```(?:json)?\s*([\s\S]*?)```/) ||
                       output.match(/(\{[\s\S]*\})/);
 
-    if (!jsonMatch) {
-      return {
-        action: 'COMMENT',
-        body: `AI review output could not be parsed as JSON. Raw output:\n\n${output}`,
-        comments: [],
-      };
-    }
+    if (!jsonMatch) return null;
 
     try {
       const parsed = JSON.parse(jsonMatch[1]) as ReviewResult;
       if (!['APPROVE', 'REQUEST_CHANGES', 'COMMENT'].includes(parsed.action)) {
-        throw new Error(`Invalid action: ${parsed.action}`);
+        return null;
       }
       return {
         action: parsed.action,
         body: parsed.body || '',
         comments: Array.isArray(parsed.comments) ? parsed.comments : [],
       };
-    } catch (err) {
-      return {
-        action: 'COMMENT',
-        body: `AI review output could not be parsed. Error: ${err}\n\nRaw output:\n\n${output}`,
-        comments: [],
-      };
+    } catch {
+      return null;
     }
+  }
+
+  private async repairJson(badOutput: string): Promise<string> {
+    const prompt = [
+      'Convert the following invalid review output into valid JSON matching exactly this schema:',
+      '{"action":"APPROVE|REQUEST_CHANGES|COMMENT","body":"string","comments":[{"path":"string","line":1,"body":"string"}]}',
+      'Rules:',
+      '- Preserve the meaning of the review',
+      '- Output JSON only',
+      '- No markdown fences',
+      '- No code blocks or backticks in strings',
+      '- Keep comments concise',
+      '',
+      badOutput,
+    ].join('\n');
+
+    return this.runCLI(prompt);
   }
 }

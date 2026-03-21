@@ -20,10 +20,14 @@ Your response MUST be valid JSON matching this schema exactly:
 
 Rules:
 - Use APPROVE if the code is correct and meets all project standards
-- Use REQUEST_CHANGES if there are bugs, security issues, or violations of project rules
-- Use COMMENT for neutral observations without blocking the PR
+- Use REQUEST_CHANGES only for real bugs, broken checks, security issues, or clear rule violations that should block merge
+- Use COMMENT for non-blocking suggestions
+- Focus on high-signal findings; ignore minor polish and generic scaffold cleanup unless it creates a real risk
+- Prefer at most 5 comments and only when they are specific and actionable
+- Do not include markdown fences, code blocks, backticks, or multiline snippets inside JSON strings
+- Keep comments short, plain, and practical
 - "comments" should reference specific lines with actionable feedback
-- "body" should summarize the overall review
+- "body" should summarize the overall review in plain language
 - Respond with JSON only, no markdown, no extra text`;
 
 export function buildPrompt(

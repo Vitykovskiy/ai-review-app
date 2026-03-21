@@ -3,6 +3,7 @@ import { config } from './config';
 import { createAIProvider } from './ai/aiProvider';
 import { waitForAuth } from './ai/authChecker';
 import { webhookRouter } from './webhooks/webhookRouter';
+import { startPRPoller } from './polling/prPoller';
 
 async function main() {
   const app = express();
@@ -25,6 +26,9 @@ async function main() {
 
   // Mount webhook route only after auth is confirmed
   app.use('/webhook', webhookRouter(config, aiProvider));
+
+  // Fallback polling for environments where GitHub App webhook events are not fully configured yet
+  startPRPoller(config, aiProvider);
 
   process.on('SIGTERM', () => {
     console.log('[server] SIGTERM received, shutting down');

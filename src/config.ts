@@ -32,6 +32,10 @@ function loadConfig(): Config {
     throw new Error(`AI_PROVIDER must be "claude" or "codex", got: ${aiProvider}`);
   }
 
+  const pollerRepos = process.env['POLLER_REPOS']
+    ? process.env['POLLER_REPOS']!.split(',').map((x) => x.trim()).filter(Boolean)
+    : undefined;
+
   return {
     githubAppId: requireEnv('GITHUB_APP_ID'),
     githubPrivateKey: loadPrivateKey(),
@@ -42,6 +46,7 @@ function loadConfig(): Config {
     logLevel: process.env['LOG_LEVEL'] || 'info',
     maxPromptChars: parseInt(process.env['MAX_PROMPT_CHARS'] || '200000', 10),
     maxRulesChars: parseInt(process.env['MAX_RULES_CHARS'] || '50000', 10),
+    pollerRepos,
   };
 }
 
