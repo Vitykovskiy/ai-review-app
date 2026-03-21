@@ -81,6 +81,13 @@ export async function handlePullRequest(
       config.githubPrivateKey
     );
 
+    // Verify PR is still open — it may have been merged while AI was running
+    const currentPR = await freshClient.get(`/repos/${owner}/${repo}/pulls/${pr.number}`) as { state: string };
+    if (currentPR.state !== 'open') {
+      console.log(`[pr] PR ${prKey} is ${currentPR.state}, skipping review post`);
+      return;
+    }
+
     await postReview(freshClient, owner, repo, pr.number, pr.head.sha, result, files);
     console.log(`[pr] Review posted for ${prKey}: ${result.action}`);
   } catch (err) {
