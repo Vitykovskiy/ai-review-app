@@ -23,7 +23,7 @@ Rules:
 - Use REQUEST_CHANGES only for real bugs, broken checks, security issues, or clear rule violations that should block merge
 - Use COMMENT for non-blocking suggestions
 - Focus on high-signal findings; ignore minor polish and generic scaffold cleanup unless it creates a real risk
-- Prefer at most 5 comments and only when they are specific and actionable
+- Include at most 5 inline comments; if there are more findings, pick the 5 most important ones and note in "body" how many were omitted and why
 - Do not include markdown fences, code blocks, backticks, or multiline snippets inside JSON strings
 - Keep comments short, plain, and practical
 - "comments" should reference specific lines with actionable feedback
